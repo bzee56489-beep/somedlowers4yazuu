@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sunflowers for Yazuu 🌻</title>
+  <style>
+    :root {
+      --bg: #090a0f;
+      --accent: #ffd700;
+      --accent-glow: rgba(255, 215, 0, 0.4);
+      --card-bg: rgba(18, 20, 29, 0.85);
+      --text: #f0f4f8;
+      --subtext: #a0aec0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+    }
+
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Header Overlay */
+    .header {
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      text-align: center;
+      pointer-events: none;
+      width: 90%;
+      max-width: 600px;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.6), 0 2px 4px rgba(0,0,0,0.8);
+      letter-spacing: 1px;
+    }
+
+    .header p {
+      font-size: 0.95rem;
+      color: var(--subtext);
+      margin-top: 6px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    }
+
+    /* UI Controls Bar */
+    .controls-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      gap: 12px;
+      background: rgba(15, 17, 26, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 16px;
+      border-radius: 40px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .btn {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--accent);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ffd700, #ff8c00);
+      color: #000;
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(255, 215, 0, 0.5);
+      color: #000;
+    }
+
+    /* Card Modal */
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      width: 90%;
+      max-width: 440px;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(255, 215, 0, 0.15);
+      position: relative;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-backdrop.active .modal-card {
+      transform: translateY(0);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--subtext);
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .card-body {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .card-signature {
+      text-align: right;
+      font-style: italic;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Floating Toast */
+    .toast {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(255, 215, 0, 0.9);
+      color: #000;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 50;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="canvas"></canvas>
+
+  <div class="header">
+    <h1>For My Sun, Yazuu 🌻</h1>
+    <p>Tap anywhere to plant sunflowers that grow for you</p>
+  </div>
+
+  <div class="controls-bar">
+    <button class="btn btn-primary" id="cardBtn">💌 Letter for Yazuu</button>
+    <button class="btn" id="clearBtn">🧹 Clear Garden</button>
+    <button class="btn" id="audioBtn">🎵 Sound: ON</button>
+  </div>
+
+  <div class="modal-backdrop" id="modal">
+    <div class="modal-card">
+      <button class="close-btn" id="closeModal">&times;</button>
+      <div class="card-title">Dear Yazuu 🌻</div>
+      <div class="card-body">
+        Just like sunflowers turn toward the sun every day, my thoughts always turn straight to you. May this little digital garden remind you of how bright you make everything around you!
+      </div>
+      <div class="card-signature">Forever & Always ❤️</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Sunflower Planted! 🌻</div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let width, height;
+    let sunflowers = [];
+    let particles = [];
+    let soundEnabled = true;
+
+    // Web Audio Synthesizer
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function playTone(freq, duration = 0.5) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Fibonacci Phyllotaxis Seed Pattern
+    function drawSunflowerCenter(ctx, cx, cy, radius, progress) {
+      const goldenAngle = 137.5 * (Math.PI / 180);
+      const totalSeeds = Math.floor(140 * progress);
+      const maxDist = radius * 0.75;
+
+      ctx.fillStyle = '#3a1e05';
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 0.78, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (let i = 0; i < totalSeeds; i++) {
+        const r = Math.sqrt(i / 140) * maxDist;
+        const theta = i * goldenAngle;
+        const x = cx + r * Math.cos(theta);
+        const y = cy + r * Math.sin(theta);
+        const seedSize = 1.5 + (r / maxDist) * 1.8;
+
+        ctx.fillStyle = i % 2 === 0 ? '#5c320a' : '#261202';
+        ctx.beginPath();
+        ctx.arc(x, y, seedSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Sunflower Growth Class
+    class Sunflower {
+      constructor(targetX, targetY) {
+        this.startX = targetX + (Math.random() - 0.5) * 40;
+        this.startY = height + 50;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        
+        this.cpX = (this.startX + this.targetX) / 2 + (Math.random() - 0.5) * 80;
+        this.cpY = (this.startY + this.targetY) / 2;
+
+        this.growProgress = 0;
+        this.bloomProgress = 0;
+        this.maxFlowerRadius = 35 + Math.random() * 15;
+        this.petalCount = 22 + Math.floor(Math.random() * 6);
+        
+        this.leafProgress = 0;
+        this.swayAngle = Math.random() * Math.PI * 2;
+      }
+
+      update() {
+        if (this.growProgress < 1) {
+          this.growProgress += 0.015;
+        } else if (this.bloomProgress < 1) {
+          this.bloomProgress += 0.02;
+        }
+        this.swayAngle += 0.02;
+      }
+
+      draw(ctx) {
+        // Calculate current stem end position using quadratic curve
+        const t = Math.min(this.growProgress, 1);
+        const cx = Math.pow(1 - t, 2) * this.startX + 2 * (1 - t) * t * this.cpX + Math.pow(t, 2) * this.targetX;
+        const cy = Math.pow(1 - t, 2) * this.startY + 2 * (1 - t) * t * this.cpY + Math.pow(t, 2) * this.targetY;
+        
+        const sway = Math.sin(this.swayAngle) * 3 * this.bloomProgress;
+        const headX = cx + sway;
+        const headY = cy;
+
+        // Draw Stem
+        ctx.strokeStyle = '#2d5a27';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(this.startX, this.startY);
+        ctx.quadraticCurveTo(this.cpX, this.cpY, headX, headY);
+        ctx.stroke();
+
+        // Draw Leaves when stem grows
+        if (this.growProgress > 0.4) {
+          const leafT = 0.5;
+          const lx = Math.pow(1 - leafT, 2) * this.startX + 2 * (1 - leafT) * leafT * this.cpX + Math.pow(leafT, 2) * this.targetX;
+          const ly = Math.pow(1 - leafT, 2) * this.startY + 2 * (1 - leafT) * leafT * this.cpY + Math.pow(leafT, 2) * this.targetY;
+          
+          ctx.fillStyle = '#3a7d34';
+          // Left leaf
+          ctx.beginPath();
+          ctx.ellipse(lx - 15, ly, 18, 8, -Math.PI / 4, 0, Math.PI * 2);
+          ctx.fill();
+          // Right leaf
+          ctx.beginPath();
+          ctx.ellipse(lx + 15, ly + 5, 18, 8, Math.PI / 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw Petals & Center Flower Head
+        if (this.bloomProgress > 0) {
+          const currentRadius = this.maxFlowerRadius * this.bloomProgress;
+          
+          // Layer 1: Outer Petals
+          ctx.fillStyle = '#ffa500';
+          for (let i = 0; i < this.petalCount; i++) {
+            const angle = (i * Math.PI * 2) / this.petalCount;
+            const px = headX + Math.cos(angle) * (currentRadius * 0.6);
+            const py = headY + Math.sin(angle) * (currentRadius * 0.6);
+
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(angle + Math.PI / 2);
+            ctx.beginPath();
+            ctx.ellipse(0, -currentRadius * 0.6, currentRadius * 0.25, currentRadius * 0.7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // Layer 2: Inner Bright Golden Petals
+          ctx.fillStyle = '#ffd700';
+          for (let i = 0; i < this.petalCount; i++) {
+            const angle = (i * Math.PI * 2) / this.petalCount + (Math.PI / this.petalCount);
+            const px = headX + Math.cos(angle) * (currentRadius * 0.5);
+            const py = headY + Math.sin(angle) * (currentRadius * 0.5);
+
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(angle + Math.PI / 2);
+            ctx.beginPath();
+            ctx.ellipse(0, -currentRadius * 0.5, currentRadius * 0.2, currentRadius * 0.55, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // Draw Seed Center
+          drawSunflowerCenter(ctx, headX, headY, currentRadius * 0.6, this.bloomProgress);
+        }
+      }
+    }
+
+    // Golden Dust Floating Particle Effect
+    class Particle {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = Math.random() * 2 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.4;
+        this.speedY = -Math.random() * 0.5 - 0.2;
+        this.alpha = Math.random() * 0.6 + 0.2;
+      }
+
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.y < 0 || this.x < 0 || this.x > width) {
+          this.reset();
+          this.y = height + 10;
+        }
+      }
+
+      draw(ctx) {
+        ctx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Initialize Dust Particles
+    for (let i = 0; i < 60; i++) {
+      particles.push(new Particle());
+    }
+
+    // Spawn Initial Sunflowers
+    function plantSunflower(x, y) {
+      if (sunflowers.length >= 25) sunflowers.shift();
+      sunflowers.push(new Sunflower(x, y));
+      playTone(400 + Math.random() * 300, 0.4);
+    }
+
+    setTimeout(() => {
+      plantSunflower(width * 0.3, height * 0.45);
+      plantSunflower(width * 0.5, height * 0.35);
+      plantSunflower(width * 0.7, height * 0.5);
+    }, 300);
+
+    // Canvas Tap/Click Interaction
+    canvas.addEventListener('click', (e) => {
+      if (e.clientY > height - 80) return; // avoid controls bar area
+      plantSunflower(e.clientX, e.clientY);
+      showToast();
+    });
+
+    // Animation Loop
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw background particles
+      particles.forEach(p => {
+        p.update();
+        p.draw(ctx);
+      });
+
+      // Update and draw sunflowers
+      sunflowers.forEach(s => {
+        s.update();
+        s.draw(ctx);
+      });
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // UI Buttons & Modal Logic
+    const modal = document.getElementById('modal');
+    const cardBtn = document.getElementById('cardBtn');
+    const closeModal = document.getElementById('closeModal');
+    const clearBtn = document.getElementById('clearBtn');
+    const audioBtn = document.getElementById('audioBtn');
+    const toast = document.getElementById('toast');
+
+    cardBtn.addEventListener('click', () => modal.classList.add('active'));
+    closeModal.addEventListener('click', () => modal.classList.remove('active'));
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('active');
+    });
+
+    clearBtn.addEventListener('click', () => {
+      sunflowers = [];
+    });
+
+    audioBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      audioBtn.textContent = soundEnabled ? '🎵 Sound: ON' : '🔇 Sound: OFF';
+    });
+
+    function showToast() {
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+  </script>
+</body>
+</html>
